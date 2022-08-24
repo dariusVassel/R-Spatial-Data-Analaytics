@@ -1,0 +1,783 @@
+---
+title: "R-Spatial Data Analytics"
+author: "Samarth Gwalani"
+date: "8/15/2022"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r, echo=FALSE , message = F, warning=F}
+
+
+library(rgdal)
+library(sf)
+library(ggplot2)
+library(tmap)
+library(tmaptools)
+library(leaflet)
+library(dplyr)
+
+library(tidyverse)
+
+library(plot3D)
+library(plotly)
+library(rgl)
+library(raster)
+
+library(usmap)
+
+
+library("readxl")
+
+library(tidyr)
+
+library(ggrepel)
+
+library(cowplot)
+library(plotscale)
+library(vtable)
+
+library(readr)
+
+library(knitr)
+library(kableExtra)
+
+library(vcd)
+
+
+library(ape)
+library(spdep)
+library(tripack)
+library("PerformanceAnalytics")
+
+library(gstat)
+
+```
+
+## Public Mass Shootings
+
+Since 2009, there have been 278 mass shootings in the United States, resulting in 1569 people shot and killed and 1000 people shot and wounded.
+The purpose of this analysis is to explore correlations between public mass shootings versus unemployment and household median income. 
+This could help public officials deploy more effective public policies based on observations seen in the data set.
+Hopefully helping address future incidents from happening. 
+
+# Datasets
+https://www.motherjones.com/politics/2012/12/mass-shootings-mother-jones-full-data/
+ 
+https://www.icip.iastate.edu/tables/employment/unemployment-states
+
+https://geodacenter.github.io/data-and-lab//houston/ 
+
+I would like to develop this hypothesis to enable the United States Government to better strategize and improve the understanding of public mass shooting incidents. 
+
+This study should enable the US government to address trends of shooter background to target social policy more effectively.
+
+I will also compare the incidents by
+Region
+Unemployment Rate of State
+
+
+## Shooting Data:
+```{r, echo=FALSE , message = F, warning=F}
+data_shootings <- read.csv("data.csv")
+summary(data_shootings)
+```
+
+
+```{r, echo=FALSE , message = F, warning=F}
+#Processing data: 
+data_shootings_separated <- separate(data_shootings, col = location, into = c("subregion", "region"), sep = ", ")
+```
+
+## Exploring Data Analysis: 
+The chart below shows an increase in fatality over the last few decades.
+
+The Boxplot also shows us an increase in fatalities in recent years and an average fatality rate of 5-10 deceased in a shooting.
+```{r, echo=FALSE}
+#Data Visulization
+par(bg = "grey") #for plot() background graphics
+
+
+test_2 <- lm(fatalities ~ year, data = data_shootings_separated)
+plot( data_shootings_separated$fatalities ~ data_shootings_separated$year, main="Number of fatalities over the last three decades", col = "white", xlab = "Year", ylab = "Fatalities")
+
+
+sumtable(data_shootings_separated)
+
+hist(data_shootings_separated$fatalities, main ="Fatalities in public mass shootings")
+
+#Average fatalities of Mass Incidents
+boxplot <- ggplot(data=data_shootings_separated,aes(x="",y=fatalities)) +
+  geom_boxplot()
+
+boxplot
+
+#Year of crisis
+boxplot_2 <- ggplot(data=data_shootings_separated,aes(x="",y=year)) +
+  geom_boxplot()
+
+boxplot_2
+
+```
+
+
+## Mosaic Display 
+## (Exploratory Analysis of Dataset)
+
+Fig. State Unemployment vs State Fatalities X-squared = 5.1174, df = 1, p-value = 0.02369
+Fig. Mental Health vs State Fatalities: X-squared = 0.00043219, df = 1, p-value = 0.9834
+Fig. Weapon Legality vs State Fatalities: X-squared = 0.50809, df = 1, p-value = 0.476
+Fig. Gender vs Race: X-squared = 10.855, df = 5, p-value = 0.05433
+
+
+```{r echo = F, message = F, warning=F}
+a <-chisq.test(data_shootings$Race,data_shootings$Gender)
+data_shootings$Gender[data_shootings$Gender == "M"] <- "Male"
+data_shootings$Gender[data_shootings$Gender == "F"] <- "Female"
+
+data_shootings$Race[data_shootings$Race == "Unidentified"] <- "X"
+data_shootings$Race[data_shootings$Race == "Native American"] <- "Nat"
+data_shootings$Race[data_shootings$Race == "Latino"] <- "Lat"
+
+
+mosaic(~Race +Gender, data = data_shootings, gp_labels = gpar(fontsize = 6), shade=TRUE, legend=TRUE , labeling = labeling_values, color = "skyblue2")
+
+#Removed for formatting
+#chisq.test(data_mosaic$Treatment, data_mosaic$Improved)
+```
+
+```{r echo = F, message = F, warning=F}
+data_shootings2 <- read.csv("Shooting_data_main.csv")
+
+```
+
+
+```{r echo = F, message = F, warning=F}
+
+a <-chisq.test(data_shootings2$Hist_Unemp_St,data_shootings2$Fatality.Status)
+#data_shootings2$Gender[data_shootings2$Gender == "M"] <- "Male"
+#data_shootings2$Gender[data_shootings2$Gender == "F"] <- "Female"
+
+#data_shootings2$Race[data_shootings2$Race == "Unidentified"] <- "X"
+#data_shootings2$Race[data_shootings2$Race == "Native American"] <- "Nat"
+#data_shootings2$Race[data_shootings2$Race == "Latino"] <- "Lat"
+
+
+mosaic(~Hist_Unemp_St +Fatality.Status, data = data_shootings2, gp_labels = gpar(fontsize = 7), shade=TRUE, legend=TRUE , labeling = labeling_values, color = "skyblue2")
+
+#Removed for formatting
+#chisq.test(data_mosaic$Treatment, data_mosaic$Improved)
+```
+
+```{r echo = F, message = F, warning=F}
+
+a <-chisq.test(data_shootings2$prior_signs_mental_health_issues,data_shootings2$Fatality.Status)
+#data_shootings2$Gender[data_shootings2$Gender == "M"] <- "Male"
+#data_shootings2$Gender[data_shootings2$Gender == "F"] <- "Female"
+
+#data_shootings2$Race[data_shootings2$Race == "Unidentified"] <- "X"
+#data_shootings2$Race[data_shootings2$Race == "Native American"] <- "Nat"
+#data_shootings2$Race[data_shootings2$Race == "Latino"] <- "Lat"
+
+
+mosaic(~prior_signs_mental_health_issues +Fatality.Status, data = data_shootings2, gp_labels = gpar(fontsize = 7), shade=TRUE, legend=TRUE , labeling = labeling_values, color = "skyblue2")
+
+#Removed for formatting
+#chisq.test(data_mosaic$Treatment, data_mosaic$Improved)
+```
+
+```{r echo = F, message = F, warning=F}
+
+a <-chisq.test(data_shootings2$legal_weapon,data_shootings2$Fatality.Status)
+#data_shootings2$Gender[data_shootings2$Gender == "M"] <- "Male"
+#data_shootings2$Gender[data_shootings2$Gender == "F"] <- "Female"
+
+#data_shootings2$Race[data_shootings2$Race == "Unidentified"] <- "X"
+#data_shootings2$Race[data_shootings2$Race == "Native American"] <- "Nat"
+#data_shootings2$Race[data_shootings2$Race == "Latino"] <- "Lat"
+
+
+mosaic(~legal_weapon +Fatality.Status, data = data_shootings2, gp_labels = gpar(fontsize = 7), shade=TRUE, legend=TRUE , labeling = labeling_values, color = "skyblue2")
+
+#Removed for formatting
+#chisq.test(data_mosaic$Treatment, data_mosaic$Improved)
+```
+
+### Bivariate Analysis: Smoothing.
+
+```{r, echo=FALSE}
+ggplot(data=data_shootings_separated,aes(x=year,y=fatalities)) +
+   geom_point() +
+   geom_smooth(method=loess, color="blue") +
+   ggtitle("Loess Smoother") +
+   theme(plot.title = element_text(hjust=0.5))
+```
+
+```{r echo = F, message = F, warning=F}
+#Spatialize
+#mapdata_3 <- mapdata_2%>%filter(!is.na(mapdata_2$fatalities))
+#data <- data[!apply(is.na(data) | data == "", 1, all),]
+
+
+SHOOTINGS <- data_shootings_separated
+dataSHOOTING <- SHOOTINGS[!apply(is.na(SHOOTINGS) | SHOOTINGS == "", 1, all),]
+
+
+
+as.numeric(SHOOTINGS$latitude)
+as.numeric(SHOOTINGS$longitude)
+
+```
+
+```{r echo = F, message = F, warning=F}
+coordinates(SHOOTINGS) = ~longitude+latitude
+proj4string(SHOOTINGS) <- CRS("+init=epsg:4269")
+SHOOTINGS <- spTransform(SHOOTINGS, CRS("+init=epsg:4269")) #Used to change the projection.
+
+
+#summary(SHOOTINGS)
+```
+
+
+```{r echo = F, message = F, warning=F}
+SHOOTING_df <- as.data.frame(SHOOTINGS)
+ggplot(data=SHOOTING_df,aes(fatalities)) + geom_histogram()
+```
+
+```{r echo = F, message = F, warning=F}
+ggplot(data=SHOOTING_df,aes(x=fatalities,y=injured)) +
+   geom_point()
+```
+
+```{r echo = F, message = F, warning=F}
+ggplot(data=SHOOTING_df,aes(x=longitude,y=fatalities)) +
+   geom_point() +
+   geom_smooth(method=loess, color="blue") +
+   ggtitle("Loess Smoother on Longitude v Fatalities") +
+   theme(plot.title = element_text(hjust=0.5))
+```
+
+```{r echo = F, message = F, warning=F}
+ggplot(data=SHOOTING_df,aes(x=latitude,y=fatalities)) +
+   geom_point() +
+   geom_smooth(method=loess, color="blue") +
+   ggtitle("Loess Smoother on Longitude v Fatalities") +
+   theme(plot.title = element_text(hjust=0.5))
+```
+
+```{r echo = F, message = F, warning=F}
+library("PerformanceAnalytics")
+target_data <- SHOOTING_df[c('longitude','latitude','fatalities','injured')]
+chart.Correlation(target_data, histogram=TRUE, pch=19) 
+```
+
+
+## Visualizing Clustering of Incidents
+In order to visualize the clustering of incidents we join our data set by region to the map of the US.
+As we can see from the spatial mapping below the highest incidents of shootings have taken place in Nevada and Texas.
+
+On observing the point clustering there seemed to visually be a few zones/ states in which the clustering of shootings was high. 
+I wanted to see visually if there was a relationship between the shootings and demographic factors such as unemployment. 
+
+Joining shooting data with base map data:
+```{r, echo=FALSE}
+
+mapdata <- map_data("state")
+data_shootings_separated$region <- tolower(data_shootings_separated$region)
+data_shootings_separated$subregion <- tolower(data_shootings_separated$subregion)
+
+
+mapdata_2 <- left_join(mapdata, data_shootings_separated, by="region")
+
+
+#mapdata_3 <- mapdata%>%filter(!is.na(mapdata_2$fatalities))
+
+```
+First visualization of shooter data on base map plot:
+```{r echo = F, message = F}
+map1 <- ggplot(mapdata_2, aes(x =long, y=lat, group = group)) +
+  geom_polygon(aes(fill = fatalities), color = "grey")
+
+map1
+
+map2 <- map1 + scale_fill_gradient(name= "Number of Fatalities", low = "yellow", high = "red", na.value = "white") +
+  theme(axis.text.x = element_blank(),
+       axis.text.y = element_blank(),
+       axis.ticks = element_blank(),
+       axis.title.x = element_blank(),
+       axis.title.y = element_blank(),
+       rect = element_blank())
+
+map2
+```
+
+
+##Visualizing clustering of incidents
+# Point Plot of shooting location:
+```{r echo = F, message = F}
+us_base_map <- plot_usmap(regions = "counties") + 
+                  labs(title = "US Counties", subtitle = "This is a blank map of the counties of the United States.") + 
+                  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+
+
+
+mapdata_3 <- mapdata_2%>%filter(!is.na(mapdata_2$fatalities))
+
+map3 <- ggplot(data_shootings_separated, aes(x=latitude, y=longitude, size = fatalities)) +
+    #geom_sf(data=mapdata, aes(x=lat, y=long))+
+    geom_point(alpha=0.7) +
+    theme(axis.text.x = element_blank(),
+       axis.text.y = element_blank(),
+       axis.ticks = element_blank(),
+       rect = element_blank())
+
+map3
+
+
+
+```
+
+##Visualizing clustering of incidents
+# Merging point plot with base map with labelling:
+
+```{r echo = F, message = F}
+america_map <- map_data("world", region='USA')
+USA_map <-
+  ggplot(america_map, aes(x=long, y=lat, group=group)) +
+  geom_polygon() + 
+  scale_x_continuous(limits = c(-125,-65)) +
+  scale_y_continuous(limits = c(25, 50)) + 
+  coord_map()
+  
+
+
+USA_map +
+  geom_point(data=data_shootings_separated,
+    mapping=aes(x=as.numeric(longitude), y=as.numeric(latitude),size = fatalities, alpha=0.5, group=NULL, color=fatalities ),
+    color= "yellow"
+  ) +
+  geom_text_repel(data=data_shootings_separated,
+    mapping=aes(x=as.numeric(longitude), y=as.numeric(latitude), group=1, label=region),
+    color='black'
+  )
+
+```
+
+Combining Fatality gradient with shooter locations: 
+```{r echo = F, message = F}
+america_map <- map_data("world", region='USA')
+USA_map <-
+  ggplot(america_map, aes(x=long, y=lat, group=group)) +
+  geom_polygon() + 
+  scale_x_continuous(limits = c(-125,-65)) +
+  scale_y_continuous(limits = c(25, 50)) + 
+  coord_map()
+  
+
+
+overlay_map <- map1 +
+  geom_point(data=data_shootings_separated,
+    mapping=aes(x=as.numeric(longitude), y=as.numeric(latitude),size = fatalities, alpha=0.5, group=NULL, color=fatalities ),
+    color= "yellow"
+  ) +
+  geom_text_repel(data=data_shootings_separated,
+    mapping=aes(x=as.numeric(longitude), y=as.numeric(latitude), group=1, label=region),
+    color='black'
+  ) 
+
+file1 <- paste0(tempfile(),'.png')
+
+as.png(overlay_map, filename = file1, width = 3, height = 2.5, scaled = FALSE)
+
+overlay_map
+
+
+```
+
+# Combining unemployment base map with shooter locations: 
+
+Below we see a map with a gradient of unemployment levels within states and the location of the shootings.
+To the eye it seems like there was a relationship between shootings and the unemployment levels. 
+
+It is observed that the lighter states (high unemployment) is where most of the clusters lie as compared to the darker states (low unemployment)
+```{r echo = F, message = F}
+data_unemployment <- read.csv("States-Table 1.csv")
+data_unemployment$region <- tolower(data_unemployment$Area)
+data_unemployment$unemployment <- tolower(data_unemployment$X2018)
+
+mapdata_base <- map_data("state")
+
+
+mapdata_unemployment <- left_join(mapdata_base, data_unemployment, by="region")
+
+map_unemployment <- ggplot(mapdata_unemployment, aes(x =long, y=lat, group = group)) +
+  geom_polygon(aes(fill = as.numeric(unemployment)), color = "grey")
+
+map_unemployment
+
+overlay_map_unemployment <- map_unemployment +
+  geom_point(data=data_shootings_separated,
+    mapping=aes(x=as.numeric(longitude), y=as.numeric(latitude),size = fatalities, alpha=0.5, group=NULL, color=fatalities ),
+    color= "yellow"
+  ) +
+  geom_text_repel(data=data_shootings_separated,
+    mapping=aes(x=as.numeric(longitude), y=as.numeric(latitude), group=1, label=region),
+    color='black'
+  ) 
+
+overlay_map_unemployment
+
+
+```
+
+### Variogram
+
+The Variogram Analysis for the dataset unfortunately didn't show a trend of spatial correlation. Leading to the selection of another dataset for further observation. The dataset selected shows the Homocide rates in the states with one of the highest Mass Shooting Fatality rates- Texas.
+
+```{r echo=FALSE, message = F}
+library(gstat)
+library(sp)
+library(ggplot2)
+#data_shooting_coordinates = data_shootings_separated
+
+data_shooting_B <- data_shootings_separated[,c(6:8)]
+
+
+data_shooting_B$x = as.numeric(data_shootings_separated$longitude)
+data_shooting_B$y = as.numeric(data_shootings_separated$latitude)
+
+#Removing the NA values
+data_shooting_C <- data_shooting_B%>% drop_na()
+#view(data_shooting_C)
+coordinates(data_shooting_C)=~x+y
+
+Vario_shootings = variogram(fatalities ~1, data_shooting_C)
+
+#plot(Vario_shootings)
+```
+
+
+```{r, echo=FALSE, message = F}
+Vario_shootings = variogram(fatalities ~1, data_shooting_C)
+
+Vario_shootings
+
+plot(Vario_shootings)
+
+Vario_shootings.exp <- fit.variogram(Vario_shootings, vgm(0.013, "Exp", 100, 1))
+
+plot(Vario_shootings, Vario_shootings.exp)
+
+```
+
+## No Real Convergence Observed
+
+
+## Moran I
+
+### Moran I (Fatalities)
+For the first variable we have the Moran's I coefficient at -0.02075940. While -1 is clustering of dissimilar values or perfect dispersion and 0 is no autocorrelation or perfect randomness. This tells us that the fatality in a shooting has little no clustering with their neighbors. This makes sense as the fatality of one shooting to another does not necessarily have a geographical correlation to other shootings. 
+
+### Moran I (Injured)
+For the second variable we have the Moran's I coefficient at 0.003926306 . While 1 is perfect clustering of similar values or perfect dispersion and 0 is no autocorrelation or perfect randomness. This tells us that the injured in a shooting is still pretty random and has no consequence or correlation to what happens in a closest neighbor. 
+
+### Moran I (Age of Shooter)
+For the third variable we have the Moran's I coefficient at 0.08664016 While 1 is perfect clustering of similar values  and 0 is no autocorrelation or perfect randomness. This tells us that the age of a shooter is still pretty random but has slightly more correlation as compared fatality and injuries of a shooting. The coefficient is not conclusive but begins to wonder if there are any demographic influences causing people of a certain age in a region to act a certain way. To know more we would need a better dataset. 
+
+#### Analysis
+The coefficients indicate that the US shooting incidences show low autocorrelation to one another. It could be because of the premise of the data set is mass or spree shootings which implies more than 4 fatalities. It would be interesting to combine fatalities data with homicide rate data to be able to see a larger data bank of crime activity. For the moment our data suggests spatial independence. 
+
+```{r echo = F, message = F, warning=F}
+library(ape)
+library(spdep)
+library(tripack)
+
+#You will notice that the Moran I test requires a list of neighbors. Lets first create it.
+SHOOTINGS_nb<-dnearneigh(SHOOTINGS,0,30) #this is different for all types of spatial data (point,line,polygon)
+set.ZeroPolicyOption(TRUE)
+moran.test(SHOOTINGS$fatalities, nb2listw(SHOOTINGS_nb,style="W", zero.policy = TRUE))
+
+moran.plot(SHOOTINGS$fatalities, nb2listw(SHOOTINGS_nb,style="W", zero.policy = TRUE),pch=19)
+```
+
+```{r echo = F, message = F, warning=F}
+#You will notice that the Moran I test requires a list of neighbors. Lets first create it.
+SHOOTINGS_nb<-dnearneigh(SHOOTINGS,0,30) #this is different for all types of spatial data (point,line,polygon)
+set.ZeroPolicyOption(TRUE)
+moran.test(SHOOTINGS$injured, nb2listw(SHOOTINGS_nb,style="W", zero.policy = TRUE))
+
+moran.plot(SHOOTINGS$injured, nb2listw(SHOOTINGS_nb,style="W", zero.policy = TRUE),pch=19)
+```
+
+```{r echo = F, message = F, warning=F}
+data_shootings2 <- read.csv("Shooting_data_main.csv")
+
+as.numeric(data_shootings2$latitude)
+as.numeric(data_shootings2$longitude)
+
+coordinates(data_shootings2) = ~longitude+latitude
+proj4string(data_shootings2) <- CRS("+init=epsg:4269")
+data_shootings2 <- spTransform(data_shootings2, CRS("+init=epsg:4269")) #Used to change the projection.
+
+data_shootings2_df <- as.data.frame(data_shootings2)
+
+#target_data2 <- data_shootings2_df[c('longitude','latitude','age_of_shooter','total_victims')]
+#chart.Correlation(target_data2, histogram=TRUE, pch=19) 
+
+
+#You will notice that the Moran I test requires a list of neighbors. Lets first create it.
+data_shootings2_nb<-dnearneigh(data_shootings2,0,30) #this is different for all types of spatial data (point,line,polygon)
+set.ZeroPolicyOption(TRUE)
+moran.test(data_shootings2$age_of_shooter, nb2listw(data_shootings2_nb,style="W", zero.policy = TRUE))
+
+moran.plot(data_shootings2$age_of_shooter, nb2listw(data_shootings2_nb,style="W", zero.policy = TRUE),pch=19)
+
+```
+
+
+## Semivariograms
+An omnidirectional semivariogram is computed and modelled to explore the overall spatial continuity of the dataset. With increasing spatial separation ( h ), the correlation between two data points decreases. The range is the distance at which two data points become independent.
+
+### Semivariograms (Fatalities)
+A general trend of increased or decreased semivariance was not observed. This would be due to the fact of randomness in the shooting data set or spatial independence.
+
+### Semivariograms (Injured)
+A slight trend of increased semivariance was observed initially but the eventual decrease again suggests spatial independence. This would be due to the fact of randomness in the shooting data set.
+
+### Semivariograms (Age of Shooter)
+Overall the semivariance across distance fluctuated between a semivariance range of 125 - 175. 
+
+#### Analysis
+Overall we noticed similar results to Morans I where there was no real observed trend of of semivariance with respect to distance.
+
+
+```{r echo = F, message = F, warning=F}
+library(dplyr)
+library(ggplot2)
+data_shootings3 <- read.csv("Shooting_data_main.csv")
+
+
+lzn.var_shoot = variogram(fatalities~1, data_shootings2) #omnidirectional
+
+
+
+lzn.dir_shoot = variogram(fatalities~1, data_shootings2, alpha = c(0,45,90,135))
+
+lzn.0_shoot <- filter(lzn.dir_shoot,dir.hor==0)
+
+lzn.0_shoot <- filter(lzn.dir_shoot,dir.hor==0)
+lzn.45_shoot <- filter(lzn.dir_shoot,dir.hor==45)
+lzn.90_shoot <- filter(lzn.dir_shoot,dir.hor==90)
+lzn.135_shoot <- filter(lzn.dir_shoot,dir.hor==135)
+
+lzn.omni_shoot <- lzn.var_shoot
+
+lzn_df_shoot <- data.frame(x = c(0:14),
+                     d45 = lzn.45_shoot$gamma,
+                     d90 = lzn.90_shoot$gamma,
+                     d135 = lzn.135_shoot$gamma,
+                     omni = lzn.omni_shoot$gamma)
+
+
+#par(mfrow=c(2,2))
+g <- ggplot(lzn_df_shoot, aes(x))
+g <- g + geom_line(aes(y=d45), colour="red")
+g <- g + geom_line(aes(y=d90), colour="green")
+g <- g + geom_line(aes(y=d135), colour="orange")
+g <- g + theme(legend.position="bottom")
+g <- g + ggtitle("Comparisson of all directions (fatalities)") + xlab("Distance") + ylab("Semivariance")
+g
+```
+
+```{r echo = F, message = F, warning=F}
+#Now with the Omnidirectional
+
+g <- g + geom_line(aes(y=omni), colour="black",size=2)
+g
+```
+
+```{r echo = F, message = F, warning=F}
+
+data_shootings3 <- read.csv("Shooting_data_main.csv")
+
+
+lzn.var_shoot2 = variogram(injured~1, data_shootings2) #omnidirectional
+
+
+
+lzn.dir_shoot2 = variogram(injured~1, data_shootings2, alpha = c(0,45,90,135))
+
+lzn.0_shoot <- filter(lzn.dir_shoot2,dir.hor==0)
+
+lzn.0_shoot2 <- filter(lzn.dir_shoot2,dir.hor==0)
+lzn.45_shoot2 <- filter(lzn.dir_shoot2,dir.hor==45)
+lzn.90_shoot2 <- filter(lzn.dir_shoot2,dir.hor==90)
+lzn.135_shoot2 <- filter(lzn.dir_shoot2,dir.hor==135)
+
+lzn.omni_shoot2 <- lzn.var_shoot2
+
+lzn_df_shoot <- data.frame(x = c(0:14),
+                     d452 = lzn.45_shoot2$gamma,
+                     d902 = lzn.90_shoot2$gamma,
+                     d1352 = lzn.135_shoot2$gamma,
+                     omni2 = lzn.omni_shoot2$gamma)
+
+
+#par(mfrow=c(2,2))
+g <- ggplot(lzn_df_shoot, aes(x))
+g <- g + geom_line(aes(y=d452), colour="red")
+g <- g + geom_line(aes(y=d902), colour="green")
+g <- g + geom_line(aes(y=d1352), colour="orange")
+g <- g + theme(legend.position="bottom")
+g <- g + ggtitle("Comparisson of all directions (injured)") + xlab("Distance") + ylab("Semivariance")
+g
+```
+
+```{r echo = F, message = F, warning=F}
+#Now with the Omnidirectional
+
+g <- g + geom_line(aes(y=omni2), colour="black",size=2)
+g
+```
+
+```{r echo = F, message = F, warning=F}
+
+data_shootings3 <- read.csv("Shooting_data_main.csv")
+
+as.numeric(data_shootings3$latitude)
+as.numeric(data_shootings3$longitude)
+
+coordinates(data_shootings3) = ~longitude+latitude
+proj4string(data_shootings3) <- CRS("+init=epsg:4269")
+data_shootings3 <- spTransform(data_shootings3, CRS("+init=epsg:4269")) #Used to change the projection.
+
+```
+
+```{r echo = F, message = F, warning=F}
+lzn.var_shoot3 = variogram(age_of_shooter~1, data_shootings3) #omnidirectional
+
+
+
+lzn.dir_shoot3 = variogram(age_of_shooter~1, data_shootings3, alpha = c(0,45,90,135))
+
+lzn.0_shoot <- filter(lzn.dir_shoot2,dir.hor==0)
+
+lzn.0_shoot3 <- filter(lzn.dir_shoot3,dir.hor==0)
+lzn.45_shoot3 <- filter(lzn.dir_shoot3,dir.hor==45)
+lzn.90_shoot3 <- filter(lzn.dir_shoot3,dir.hor==90)
+lzn.135_shoot3 <- filter(lzn.dir_shoot3,dir.hor==135)
+
+lzn.omni_shoot3 <- lzn.var_shoot3
+
+lzn_df_shoot <- data.frame(x = c(0:14),
+                     d453 = lzn.45_shoot3$gamma,
+                     d903 = lzn.90_shoot3$gamma,
+                     d1353 = lzn.135_shoot3$gamma,
+                     omni3 = lzn.omni_shoot3$gamma)
+
+
+#par(mfrow=c(2,2))
+g <- ggplot(lzn_df_shoot, aes(x))
+g <- g + geom_line(aes(y=d453), colour="red")
+g <- g + geom_line(aes(y=d903), colour="green")
+g <- g + geom_line(aes(y=d1353), colour="orange")
+g <- g + theme(legend.position="bottom")
+g <- g + ggtitle("Comparisson of all directions (age)") + xlab("Distance") + ylab("Semivariance")
+g
+```
+
+```{r echo = F, message = F, warning=F}
+#Now with the Omnidirectional
+
+g <- g + geom_line(aes(y=omni3), colour="black",size=2)
+g
+```
+
+## Spatial Modeling
+
+```{r}
+
+library(rgdal)
+spat.data = readOGR("NAT.shp")
+names(spat.data) #show variable names
+
+```
+
+```{r}
+spat.data$HR70 <- as.numeric(as.character(spat.data$HR70))
+
+spplot(spat.data,"HR70") #make map
+```
+
+```{r}
+library(spdep)
+
+queen.nb=poly2nb(spat.data) 
+rook.nb=poly2nb(spat.data,queen=FALSE) 
+
+queen.listw=nb2listw(queen.nb) #convert nb to listw type
+rook.listw=nb2listw(rook.nb) #convert nb to listw type
+listw1= queen.listw
+
+#define our regression equation so we don't have to type it each time
+reg.eq1= HR70~HC70+FP69+GI69
+```
+
+### OLS, SLX, Lag Y, and Lag Error
+
+# 1 - OLS
+```{r}
+reg1=lm(reg.eq1,data=spat.data)
+summary(reg1)
+lm.morantest(reg1,listw1)
+lm.LMtests(reg1,listw1,test=c("LMerr", "LMlag", "RLMerr", "RLMlag", "SARMA"))
+```
+
+# 2 - SLX or Spatially Lagged X 
+
+
+```{r}
+library(spatialreg)
+reg2.c=lmSLX(reg.eq1,data=spat.data, listw1)
+
+summary(reg2.c)
+impacts(reg2.c,listw=listw1)
+
+summary(impacts(reg2.c,listw=listw1,R=500),zstats=TRUE) #Add zstats,pvals; R=500 not needed for SLX
+```
+
+#3 - Spatial Lag Model
+
+```{r}
+reg3=lagsarlm(reg.eq1,data= spat.data, listw1)
+summary(reg3)
+```
+
+```{r}
+impacts(reg2.c,listw=listw1)
+summary(impacts(reg2.c,listw=listw1,R=500),zstats=TRUE) #Add zstats,pvals; R=500 not needed for SLX
+
+```
+
+
+
+# 4 - SEM Spatial Error Model  
+# y=XB+u,   u=LWu+e
+```{r}
+reg4=errorsarlm(reg.eq1,data=spat.data, listw1)
+summary(reg4)
+```
+
+#Spatial Hausman Test
+```{r}
+Hausman.test(reg4)
+```
